@@ -1,0 +1,52 @@
+- name:  172.16.4.5
+  user: root
+  gather_facts: false
+  vars:
+  - user: "gmanager.war"
+  hosts: 172.16.4.5
+  tasks:
+  - name: del  files
+    file: dest=/tmp/{{user}} state=absent
+    ignore_errors: True
+- hosts: 172.16.9.13
+  tasks:
+  - name: Download files from FTP
+    fetch: src=/data2/saftp/gmanager/gmanager.war dest=/tmp/ flat=yes
+- hosts: gmanager
+  tasks:
+  - name: shutdown tomcate
+    shell: /opt/gmanager/tomcatdomain1/bin/shutdown.sh 
+    ignore_errors: True
+  - name: backup gmanager
+    shell: mv /opt/gmanager/tomcatdomain1/webapps /opt/backup/gmanager$(date +%Y%m%d%H%M)
+    tags: backup
+  - name: mkdir webapps
+    shell: mkdir /opt/gmanager/tomcatdomain1/webapps 
+  - name: scp gmanager.war
+    copy: src=/tmp/gmanager.war dest=/opt/gmanager/tomcatdomain1/webapps/
+    tags: copy
+  - name: start tomcate
+    shell: /opt/gmanager/tomcatdomain1/bin/startup.sh 
+    ignore_errors: True
+  - name: sleep tomcate
+    shell: sleep 20 
+- hosts: 172.16.9.9
+  tasks:
+  - name: start tomcate
+    shell: /opt/gmanager/tomcatdomain1/bin/startup.sh 
+    ignore_errors: True
+  - name: shutdown tomcate
+    shell: /opt/gmanager/tomcatdomain1/bin/shutdown.sh 
+    ignore_errors: True
+  - name: sed off
+#    shell: sed -i "s@email.send_report.switch=on@email.send_report.switch=off@" /opt/gmanager/tomcatdomain1/webapps/gmanager/WEB-INF/classes/config.properties 
+    lineinfile: dest=/opt/gmanager/tomcatdomain1/webapps/gmanager/WEB-INF/classes/config.properties regexp=email.send_report.switch=on line=email.send_report.switch=off
+    tags: ooff
+- hosts: gmanager
+  tasks:
+  - name: shutdown tomcate
+    shell: /opt/gmanager/tomcatdomain1/bin/shutdown.sh 
+    ignore_errors: True
+  - name: start tomcate
+    shell: /opt/gmanager/tomcatdomain1/bin/startup.sh 
+    ignore_errors: True

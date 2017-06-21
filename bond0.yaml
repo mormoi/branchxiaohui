@@ -1,0 +1,60 @@
+- name:  bond
+  user: root
+  gather_facts: false
+  vars:
+  - eth_dir: /etc/sysconfig/network-scripts/
+  hosts: bond
+  tasks:
+#  - name: yum libselinux-python
+#    yum: state=present name=libselinux-python
+  - name: copy eth
+    shell: chdir={{eth_dir}} mv ifcfg-{{item}} ifcfg-{{item}}.bak
+    with_items:
+      - eth0
+      - eth1
+  - name: touch eth
+    shell: chdir={{eth_dir}} touch {{item}}
+    with_items:
+      - ifcfg-eth0
+      - ifcfg-eth1
+      - ifcfg-bond0
+  - name: touch modules.conf
+    file: path=/etc/modules.conf state=touch
+  - name: echo eth0
+    lineinfile: dest={{eth_dir}}/ifcfg-eth0 line={{item}}
+    with_items:
+      - DEVICE=eth0
+      - USERCTL=no
+      - BOOTPROTO=none
+      - ONBOOT=yes
+      - MASTER=bond0
+      - SLAVE=yes
+  - name: echo eth1
+    lineinfile: dest={{eth_dir}}/ifcfg-eth1 line={{item}}
+    with_items:
+      - DEVICE=eth1
+      - USERCTL=no
+      - BOOTPROTO=none
+      - ONBOOT=yes
+      - MASTER=bond0
+      - SLAVE=yes
+  - name: echo bond0
+    lineinfile: dest={{eth_dir}}/ifcfg-bond0 line={{item}}
+    with_items:
+      - DEVICE=bond0
+      - "BONDING_OPTS="mode=1 miimon=100""
+      - BOOTPROTO=none
+      - IPADDR
+      - NETMASK=255.255.255.0
+      - GATEWAY=172.16.17.1
+      - DNS1=202.106.0.20
+      - BROADCAST=172.16.17.255
+      - ONBOOT="yes"
+  - name: echo module.conf
+    lineinfile: dest=vim /etc/modules.conf line={{item}}
+    with_items:
+      - "alias bond0 bonding"
+      - "options bond0 miimon=100 mode=1"
+      - USERCTL=no
+  - name: sed ip
+    shell: ifconfig eth0 | awk '/inet addr/{print $2}' | awk -F ":" '{print $2}'|xargs -I {} sed -i "s@IPADDR@IPADDR={}@" /etc/sysconfig/network-scripts/ifcfg-bond0 
