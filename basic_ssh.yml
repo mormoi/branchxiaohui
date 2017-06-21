@@ -1,0 +1,21 @@
+# edirtor: haifeng
+# 2016/12/8 14:00
+# 将 xiaojinku 和 gvis 的数据库跟 tomcat 部署分开操作是考虑到灵活性，但是仍然不足的是在
+# 数据库建立用户时如何知道 xiaojinku 和 gvis 的地址， inventory 中的精准命名，然后
+# 使用 inventory_hostname 这个变量是目前知道的解决办法
+#
+# 直接放在某个机器上的问题：
+# 1. 没有 libselinux-python
+# 2. 没有 jdk
+# 4. 数据库的问题
+# 5. 应该在执行了 basic.yml 之后再执行这个 yaml 文件
+- hosts: 10.111.32.163
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/xiaojinku/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: cp and unarchive ssh to remote host
+    unarchive: src=/root/openssh/openssh-7.3p1.bin.tar.gz dest=/usr/src/ owner=root group=root creates=/usr/src/openssh-7.3p1
+  - name: install openssh-7.3p1
+    script: /root/openssh/install_sshd.sh

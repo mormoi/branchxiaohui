@@ -1,0 +1,21 @@
+- hosts: zhonghang
+  remote_user: root
+  vars:
+  - remote_dir: /root/
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: test yum 
+    yum: name={{ item }} state=latest
+    with_items:
+      - PyYAML 
+      - libyaml           
+      - python-babel      
+      - python-crypto2.6  
+      - python-httplib2   
+      - python-jinja2-26  
+      - python-keyczar    
+      - python-markupsafe 
+      - python-pyasn1     
+      - python-simplejson 
+      - python-six        
+      - sshpass

@@ -1,0 +1,22 @@
+- hosts: 10.111.32.28
+  remote_user: root
+  vars:
+  - remote_host: cent1
+  - local_dir: /root/fangzhou
+  tasks:
+#  - name: test vars
+#    shell: echo {{ inventory_hostname }} >> /tmp/test_vars
+#  - name: get ip
+#    shell: grep 'root' /etc/haha
+#    register: ipaddress
+#    ignore_errors: True
+  - name: update mysql password
+    #mysql_user: login_user=root login_password={{ ipaddress.stdout }} user=root password=234567 update_password=always
+    shell: echo {{ groups.fz_mysql_master[0] }} > /tmp/playhost
+
+#- hosts: 10.111.32.58
+#  remote_user: root
+#  tasks:
+#  - name: print name
+#    shell: echo {{ play_hosts }} >> /tmp/playhosts
+#  - name: test 

@@ -1,0 +1,12 @@
+PyYAML
+libyaml
+python-babel
+python-crypto2.6
+python-httplib2
+python-jinja2-26
+python-keyczar
+python-markupsafe
+python-pyasn1
+python-simplejson
+python-six
+sshpass

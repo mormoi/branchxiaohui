@@ -1,0 +1,41 @@
+- hosts: test_fz
+  remote_user: root
+  vars:
+  - remote_dir: /root/
+  - local_dir: /root/fangzhou
+  - conf_dir: /root/fangzhou/conf
+  - pack_dir: /root/fangzhou/packet
+  tasks:
+  - name: create user
+    user: name={{ item.name }} state=present system={{ item.system }}
+    with_items:
+      - { name: www, system: no }
+  - name: install gaia_searcher
+    unarchive: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} creates={{ item.creates }}
+    with_items:
+      - {src: '{{ pack_dir }}/gaia_searcher_20161205.tgz', dest: '/data3/', owner: www, group: www, creates: '/data3/gaia'}
+  - name: create hadoop data,log, dir,install supervisord
+    file: path={{ item.path }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }} state={{ item.state }}
+    with_items:
+      - {path: '/data4/tmp', owner: root, group: root, mode: '0777', state: directory}
+      - {path: '/data3/gaia/script/gaia.ini', owner: www, group: www, mode: '0644', state: absent}
+  - name: copy gaia_searcher needed file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    tags: copy_conf
+    with_items:
+      - { src: "{{ conf_dir }}/supervisord.conf", dest: '/etc/',owner: root, group: root, mode: '0644'}
+      - { src: "{{ conf_dir }}/gaia_searcher/gaia_search.ini", dest: '/data3/gaia/script/',owner: www, group: www, mode: '0644'}
+      - { src: "/root/fangzhou/gaia/gaia_searcher", dest: '/data3/gaia/gaia_searcher/',owner: www, group: www, mode: '0755'}
+      - { src: "/root/fangzhou/conf/logrotate/gaia_searcher", dest: '/etc/logrotate.d/',owner: www, group: www, mode: '0644'}
+    
+  - name: copy conf template file
+    template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    with_items:
+      - { src: /root/fangzhou/conf/gaia_searcher/server.conf, dest: /data3/gaia/gaia_searcher/conf/, owner: www, group: www, mode: '0644'}
+  - name: install python-setuptools packet
+    yum: name={{ item.name }} state={{ item.state }}
+    with_items:
+      - { name: python-setuptools, state: present }
+  - name: install supervisord
+    shell: test -e /usr/bin/supervisord || (cd /data3/gaia/supervisor-3.2.0; python setup.py install)
+    ignore_errors: True

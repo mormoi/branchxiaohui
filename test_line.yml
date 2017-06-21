@@ -1,0 +1,15 @@
+- hosts: 10.111.32.201
+  remote_user: root
+  vars:
+  - remote_dir: /root/
+  - local_dir: /root/fangzhou
+  - conf_dir: /root/fangzhou/conf
+  - pack_dir: /root/fangzhou/packet
+  tasks:
+  - name: modify mount argument
+    lineinfile: dest=/etc/fstab regexp="{{ item.regexp }}" line="{{ item.line }}" backrefs=yes
+    with_items:
+      - { regexp: "/dev/sda3 /data1 ext4 defaults 0 0", line: '/dev/sda3 /data1   ext4  defaults,noatime 0 0'}
+      - { regexp: "/dev/sdb1 /data2 ext4 defaults 0 0", line: '/dev/sdb1 /data2   ext4  defaults,noatime 0 0'}
+      - { regexp: "/dev/sdc1 /data3 ext4 defaults 0 0", line: '/dev/sdc1 /data3   ext4  defaults,noatime 0 0'}
+      - { regexp: "/dev/sdd1 /data4 ext4 defaults 0 0", line: '/dev/sdd1 /data4   ext4  defaults,noatime 0 0'}

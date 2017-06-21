@@ -1,0 +1,25 @@
+# edirtor: haifeng
+# 2016/12/8 
+- hosts: test_fz
+  remote_user: root
+  vars:
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: add sync time cron
+    cron: name="sync time" minute="*/5" user=root job="/usr/sbin/ntpdate {{ groups.fz_ntp[0] }}"
+
+- hosts: fz_ntp
+  remote_user: root
+  vars:
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: install ntp server
+    yum: name=ntp state=present
+  - name: copy ntp conf file
+    copy: src="{{ local_dir }}/conf/ntp/ntp.conf" dest=/etc/ owner=root group=root mode=0644
+  - name: start ntp server
+    service: name=ntpd state=started enabled=yes
+  - name: delete cront tab
+    cron: name="sync time" state=absent
+
+

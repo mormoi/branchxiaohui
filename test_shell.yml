@@ -1,0 +1,18 @@
+- hosts: 10.111.32.206
+  remote_user: root
+  vars:
+  - remote_dir: /root/
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: test shell 
+#    shell: '{{ item }}'
+#    with_items:
+#    - echo "haha"
+#    - echo "hehe"
+#    shell: while true;do if test -e /tmp/fstab; then break; else sleep 10; fi ; done
+    shell: ss -tunlp |grep sshds
+    register: sshstat
+    ignore_errors: True
+  - name: stora sshstat
+    shell: echo "{{sshstat}}" >> /tmp/sshstat_1
+

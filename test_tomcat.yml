@@ -1,0 +1,70 @@
+- hosts: 10.111.32.28
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/xiaojinku/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: cp and unarchive tomcat to remote host
+    unarchive: src=/root/fangzhou/packet/apache-tomcat-7.0.70.tar.gz dest=/usr/local/ owner=www group=www creates=/usr/local/xiaojinku
+  - name: modify dir name
+    shell: test -e /usr/local/xiaojinku || mv /usr/local/apache-tomcat-7.0.70 /usr/local/xiaojinku
+  - name: delete default webapps
+    file: path={{ item }} state=absent
+    with_items:
+    - "{{ webapp_dir }}/ROOT"
+    - "{{ webapp_dir }}/manager"
+    - "{{ webapp_dir }}/host-manager"
+    - "{{ webapp_dir }}/examples"
+    - "{{ webapp_dir }}/docs"
+  - name: copy mysql password file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    with_items:
+    - { src: '{{ local_dir }}/conf/my.cnf', dest: /root/.my.cnf, owner: root, group: root, mode: '0600'}
+    - { src: '{{ local_dir }}/war/MDNSecurityService.war', dest: /usr/local/xiaojinku/webapps/, owner: www, group: www, mode: '0644'}
+    - { src: '{{ local_dir }}/sql/ruler.sql', dest: /root/, owner: root, group: root, mode: '0644'}
+  - name: start xiaojinku tomcat
+    shell: ps aux |grep -v 'grep' |grep 'xiaojinku' || su - www -c  '/usr/local/xiaojinku/bin/catalina.sh start'
+  - name: import xiaojinku db sql file
+    mysql_db: name=ruler state=import target=/root/ruler.sql
+  - name: create mysql user
+    mysql_user: user=gmanager host=fangzhou-hbase-01 password='gm@#1479' priv='ruler.*:ALL'
+  - name: copy war packet conf file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }}
+    with_items:
+    - { src: '{{ local_dir }}/conf/xiaojinku/config.properties', dest: '{{ webapp_dir }}/MDNSecurityService/WEB-INF/classes/', owner: www, group: www}
+
+- hosts: 10.111.32.28
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/gvis/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: cp and unarchive tomcat to remote host
+    unarchive: src=/root/fangzhou/packet/apache-tomcat-7.0.70.tar.gz dest=/opt/ owner=www group=www creates=/usr/local/gvis
+  - name: modify dir name
+    shell: test -e /usr/local/gvis || mv /opt/apache-tomcat-7.0.70 /usr/local/gvis
+  - name: delete default webapps
+    file: path={{ item }} state=absent
+    with_items:
+    - "{{ webapp_dir }}/ROOT"
+    - "{{ webapp_dir }}/manager"
+    - "{{ webapp_dir }}/host-manager"
+    - "{{ webapp_dir }}/examples"
+    - "{{ webapp_dir }}/docs"
+  - name: copy mysql password file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    with_items:
+    - { src: /root/fangzhou/conf/my.cnf, dest: /root/.my.cnf, owner: root, group: root, mode: '0600'}
+    - { src: /root/fangzhou/conf/tomcat/gvis.xml, dest: /usr/local/gvis/conf/server.xml, owner: www, group: www, mode: '0644'}
+    - { src: /root/fangzhou/war/archbase.war, dest: /usr/local/gvis/webapps/, owner: www, group: www, mode: '0644'}
+    - { src: /root/fangzhou/sql/gvis_20161206.sql, dest: /root/, owner: root, group: root, mode: '0644'}
+  - name: start gvis tomcat
+    shell: ps aux |grep -v 'grep' |grep 'gvis' || su - www -c '/usr/local/gvis/bin/catalina.sh start'
+  - name: create link file to archbase
+    file: src=/usr/local/gvis/webapps/archbase dest=/usr/local/gvis/webapps/ROOT owner=www group=www state=link force=yes
+  - name: import xiaojinku db sql file
+    mysql_db: name=ruler state=import target=/root/gvis_20161206.sql
+  - name: create mysql user
+    mysql_user: user=gmanager host='%' password='gm@#1479' priv='gvis.*:ALL'
+
+# 在用 shell 模块执行 启动 tomcat 失败, 还缺少复制 程序 的配置文件

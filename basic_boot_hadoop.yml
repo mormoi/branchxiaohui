@@ -1,0 +1,34 @@
+# edirtor: haifeng
+- hosts: fz_zookeepers
+  remote_user: root
+  vars:
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: boot zookeeper,journalnode
+    shell: "{{item}}"
+    with_items:
+    - jps | grep "HQuorumPeer" || su - hdfs -c "/usr/local/hbase-1.1.2/bin/hbase-daemon.sh start zookeeper"
+    - jps | grep "JournalNode" || su - hdfs -c "/usr/local/hadoop-2.5.1/sbin/hadoop-daemon.sh start journalnode"
+
+- hosts: fz_namenode
+  remote_user: root
+  tasks:
+  - name: format namenode
+    shell: "{{item}}"
+    with_items:
+    - test -e /data1/hadoop/dfs/name/current || su - hdfs -c "hadoop namenode -format"
+    - jps | grep "NameNode" || su - hdfs -c "hadoop-daemon.sh start namenode"
+
+
+- host: fz_backup_namenode
+  remote_user: root
+  tasks:
+  - name: format namenode
+    shell: "{{item}}"
+    with_items:
+    - test -e /data1/hadoop/dfs/name/current || su - hdfs -c "hadoop namenode -bootstrapStandby"
+    - jps | grep "NameNode" || su - hdfs -c "hadoop-daemon.sh start namenode"
+
+
+  
+    

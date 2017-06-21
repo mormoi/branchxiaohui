@@ -1,0 +1,80 @@
+# edirtor: haifeng
+# 2016/12/8 
+- hosts: fz_mysql_master
+  remote_user: root
+  vars:
+  - webapp_dir: /server/www/geo/ark
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: copy mysql password file and sql
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    with_items:
+    - { src: '{{ local_dir }}/conf/my.cnf', dest: /root/.my.cnf, owner: root, group: root, mode: '0600'}
+  - name: import xiaojinku db sql file
+    mysql_db: name=ark state=present encoding=utf8
+  - name: create mysql user
+    mysql_user: user=ana host="{{ groups.fz_php[0] }}" password='ana123#@!' priv='ark.*:ALL'
+
+- hosts: fangzhou-hbase-05
+  remote_user: root
+  vars:
+  - webapp_dir: /server/www/geo/
+  - local_dir: /root/fangzhou
+  - conf_dir: /root/fangzhou/conf/
+  tasks:
+  - name: install dependece packet
+    yum: name={{ item }} state=latest
+    with_items:
+    - libevent-devel
+    - libevent
+    - libevent-headers
+    - libmcrypt
+    - libpng
+    - libjpeg-turbo
+    - freetype
+  - name: cp and unarchive tomcat to remote host
+    unarchive: src={{ item.src }} dest={{ item.dest }} owner=www group=www creates={{ item.creates }}
+    with_items:
+    - { src: '{{ local_dir }}/packet/nginx_20161115.tgz', dest: /usr/local/, creates: /usr/local/nginx }
+    - { src: '{{ local_dir }}/packet/php56_20161208.tgz', dest: /usr/local/, creates: '/usr/local/php5.6' }
+  - name: create dir
+    file: path={{ item.path }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }} state={{ item.state }}
+    with_items:
+    - { path: /server/www/geo/, owner: www, group: www, mode: '0755', state: directory }
+    - { path: /var/log/nginx/, owner: www, group: www, mode: '0755', state: directory }
+    - { path: /var/run/nginx/, owner: www, group: www, mode: '0755', state: directory }
+    - { path: /data4/tmp/, owner: root, group: root, mode: '0777', state: directory }
+  - name: copy webapp ark
+    unarchive: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} creates={{ item.creates }}
+    with_items:
+      - { src: '{{ local_dir }}/war/demo.zip', dest: '{{ webapp_dir }}/', owner: www, group: www, creates: '{{ webapp_dir }}/demo' }
+  - name: copy conf file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    with_items:
+    - { src: '{{ conf_dir }}nginx/nginx.conf', dest: /usr/local/nginx/conf/, owner: www, group: www, mode: '0644'}
+    - { src: '{{ conf_dir }}nginx/ark.conf', dest: /usr/local/nginx/conf/servers, owner: www, group: www, mode: '0644'}
+    - { src: '{{ conf_dir }}nginx/nginx', dest: '/etc/rc.d/init.d/', owner: root, group: root, mode: '0755' }
+    - { src: '{{ conf_dir }}nginx/nginx.sh', dest: '/etc/profile.d/', owner: root, group: root, mode: '0644' }
+    - { src: '{{ conf_dir }}php/php.ini', dest: /etc/, owner: root, group: root, mode: '0644' }
+    - { src: '{{ conf_dir }}php/php-fpm.conf', dest: '/usr/local/php5.6/etc/', owner: www, group: www, mode: '0644'}
+    - { src: '{{ conf_dir }}php/php-fpm', dest: '/etc/rc.d/init.d/', owner: root, group: root, mode: '0755' }
+    - { src: '{{ conf_dir}}profile/php56.sh', dest: '/etc/profile.d/', owner: root, group: root, mode: '0644' }
+    # ark conf file
+    - { src: '{{ conf_dir }}ark/env', dest: '{{ webapp_dir }}/.env', owner: www, group: www, mode: '0644'}
+    - { src: '{{ conf_dir }}ark/ark.ini', dest: '/data3/gaia/script/', owner: www, group: www, mode: '0644'}
+    - { src: '{{ conf_dir }}ark/gbfs.ini', dest: '/data3/gaia/script/', owner: www, group: www, mode: '0644'}
+  - name: add user:www cront
+    cron: user='www' name="php queue" minute="*/1" job="/usr/local/php5.6/bin/php /server/www/geo/ark/artisan schedule:run 1>> /dev/null 2>&1"
+  - name: modify gbfs mode
+    file: path=/server/www/geo/ark/resources/bin/gbfs mode='a+x'
+  - name: add to service list
+    shell: '{{ item }}'
+    with_items:
+    - chkconfig --list | grep -q 'nginx' || chkconfig --add nginx
+    - chkconfig --list | grep -q 'php-fpm' || chkconfig --add php-fpm
+  - name: set nginx,php-fpm boot on starting up
+    service: name={{ item.name }} state={{ item.state }} enabled=yes
+    with_items:
+    - { name: nginx, state: started }
+    - { name: php-fpm, state: started }
+

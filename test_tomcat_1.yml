@@ -1,0 +1,8 @@
+- hosts: 10.111.32.28
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/xiaojinku/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: cp and unarchive tomcat to remote host
+    unarchive: src='{{ local_dir }}/war/MDNSecurityService.war' extra_opts='-d /usr/local/xiaojinku/webapps/haha'  owner=www group=www mode='0644'

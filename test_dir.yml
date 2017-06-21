@@ -1,0 +1,39 @@
+- hosts: zhonghang
+  remote_user: root
+  vars:
+  - remote_dir: /root/
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: create hadoop data,log,redis dir,install supervisord
+    file: path={{ item.path }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }} state={{ item.state }}
+    with_items:
+      - {path: '/data1/hadoop/journal', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data2/hadoop/journal', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data3/hadoop/journal', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data4/hadoop/journal', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/dfs/name', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data2/hadoop/dfs/name', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data3/hadoop/dfs/name', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data4/hadoop/dfs/name', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/dfs/data', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data2/hadoop/dfs/data', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data3/hadoop/dfs/data', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data4/hadoop/dfs/data', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/zookeeper/', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data2/hadoop/zookeeper/', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data3/hadoop/zookeeper/', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data4/hadoop/zookeeper/', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/hbase/', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data2/hadoop/hbase/', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data3/hadoop/hbase/', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data4/hadoop/hbase/', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/log/yarn', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/log/hadoop', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/pid/yarn', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/pid/hadoop', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/metrics', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/gclog', owner: hdfs, group: hdfs, mode: '0777', state: directory}
+      - {path: '/data1/hadoop/dfs/data', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/local', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/log/yarn', owner: hdfs, group: hdfs, mode: '0755', state: directory}
+      - {path: '/data1/hadoop/socket/', owner: hdfs, group: hdfs, mode: '0755', state: directory}

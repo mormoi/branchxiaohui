@@ -1,0 +1,121 @@
+# edirtor: haifeng
+# 2016/12/8 14:00
+# 将 xiaojinku 和 gvis 的数据库跟 tomcat 部署分开操作是考虑到灵活性，但是仍然不足的是在
+# 数据库建立用户时如何知道 xiaojinku 和 gvis 的地址， inventory 中的精准命名，然后
+# 使用 inventory_hostname 这个变量是目前知道的解决办法
+#
+# 直接放在某个机器上的问题：
+# 1. 没有 libselinux-python
+# 2. 没有 jdk
+# 4. 数据库的问题
+# 5. 应该在执行了 basic.yml 之后再执行这个 yaml 文件
+- hosts: fz_mysql_master
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/xiaojinku/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: copy mysql password file and sql
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    with_items:
+    - { src: '{{ local_dir }}/conf/my.cnf', dest: /root/.my.cnf, owner: root, group: root, mode: '0600'}
+    - { src: '{{ local_dir }}/sql/ruler.sql', dest: /root/, owner: root, group: root, mode: '0644'}
+  - name: import xiaojinku db sql file
+    mysql_db: name=test state=import target=/root/ruler.sql
+  - name: create mysql user
+    # 注意修改这里的 host 的值是 xiaojinku 的安装的机器地址
+    mysql_user: user=gmanager host='{{ groups.fz_xiaojinku[0] }}' password='gm@#1479' priv='ruler.*:ALL'
+
+- hosts: fz_xiaojinku
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/xiaojinku/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: cp and unarchive tomcat to remote host
+    unarchive: src=/root/fangzhou/packet/apache-tomcat-7.0.70.tar.gz dest=/usr/local/ owner=www group=www creates=/usr/local/xiaojinku
+  - name: modify dir name
+    shell: "{{ item }}"
+    with_items:
+    - test -e /usr/local/xiaojinku || mv /usr/local/apache-tomcat-7.0.70 /usr/local/xiaojinku
+    - chown www.www /usr/local/xiaojinku
+  - name: delete default webapps
+    file: path={{ item }} state=absent
+    with_items:
+    - "{{ webapp_dir }}/ROOT"
+    - "{{ webapp_dir }}/manager"
+    - "{{ webapp_dir }}/host-manager"
+    - "{{ webapp_dir }}/examples"
+    - "{{ webapp_dir }}/docs"
+  - name: create webapps dir MDNSecurityService
+    file: path={{ item.path }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }} state={{ item.state }}
+    with_items:
+      - {path: '{{ webapp_dir}}/MDNSecurityService', owner: www, group: www, mode: '0755', state: directory}
+  - name: copy war file
+    unarchive: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} creates={{ item.creates }}
+    with_items:
+    - { src: '{{ local_dir }}/war/MDNSecurityService.war', dest: '{{ webapp_dir }}/MDNSecurityService/', owner: www, group: www, creates: '{{ webapp_dir }}/MDNSecurityService/index.jsp'}
+  - name: copy war packet conf file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }}
+    with_items:
+    - { src: '{{ local_dir }}/conf/xiaojinku/config.properties', dest: '{{ webapp_dir }}/MDNSecurityService/WEB-INF/classes/', owner: www, group: www}
+    - { src: '{{ local_dir }}/conf/logrotate/xiaojinku', dest: '/etc/logrotate.d/xiaojinku', owner: root, group: root}
+  - name: start xiaojinku tomcat
+    shell: ps aux |grep -v 'grep' |grep 'xiaojinku' || su - www -c  '/usr/local/xiaojinku/bin/catalina.sh start'
+
+- hosts: fz_mysql_master
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/gvis/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: copy mysql password file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    with_items:
+      - { src: "{{ local_dir }}/conf/my.cnf", dest: '/root/.my.cnf', owner: root, group: root, mode: '0600' }
+      - { src: '{{ local_dir }}/sql/gvis_20161206.sql', dest: /root/, owner: root, group: root, mode: '0644'}
+    tags: sql2
+  - name: import xiaojinku db sql file
+    mysql_db: name=ruler state=import target=/root/gvis_20161206.sql
+  - name: create mysql user
+    mysql_user: user=gmanager host='%' password='gm@#1479' priv='gvis.*:ALL'
+
+- hosts: fz_gvis
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/gvis/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: cp and unarchive tomcat to remote host
+    unarchive: src=/root/fangzhou/packet/apache-tomcat-7.0.70.tar.gz dest=/opt/ owner=www group=www creates=/usr/local/gvis
+  - name: modify dir name
+    shell: "{{ item }}"
+    with_items:
+    - test -e /usr/local/gvis || mv /opt/apache-tomcat-7.0.70 /usr/local/gvis
+    - chown www.www /usr/local/gvis
+  - name: delete default webapps
+    file: path={{ item }} state=absent
+    with_items:
+    - "{{ webapp_dir }}/ROOT"
+    - "{{ webapp_dir }}/manager"
+    - "{{ webapp_dir }}/host-manager"
+    - "{{ webapp_dir }}/examples"
+    - "{{ webapp_dir }}/docs"
+  - name: create webapps dir ROOT
+    file: path={{ item.path }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }} state={{ item.state }}
+    with_items:
+    - { path: '{{ webapp_dir}}/archbase', owner: www, group: www, mode: '0755', state: directory }   
+    - { path: '/data4/share/gvis', owner: www, group: www, mode: '0755', state: directory }
+  - name: create link file to archbase
+    unarchive: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} creates={{ item.creates }}
+    with_items:
+    - { src: '{{ local_dir }}/war/archbase.war', dest: '{{ webapp_dir }}/archbase/', owner: www, group: www, creates: '{{ webapp_dir }}/archbase/WEB-INF'}
+  - name: copy mysql password file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }}
+    with_items:
+    - { src: '{{ local_dir }}/conf/tomcat/gvis.xml', dest: /usr/local/gvis/conf/server.xml, owner: www, group: www}
+    - { src: '{{ local_dir}}/conf/gvis/application.properties', dest: "{{ webapp_dir}}/archbase/WEB-INF/classes/", owner: www, group: www}
+    - { src: '{{ local_dir}}/conf/gvis/db.properties', dest: "{{ webapp_dir}}/archbase/WEB-INF/classes/", owner: www, group: www}
+    - { src: '{{ local_dir}}/conf/logrotate/gvis', dest: "/etc/logrotate.d/gvis", owner: root, group: root}
+  - name: start gvis tomcat
+    shell: ps aux |grep -v 'grep' |grep 'gvis' || su - www -c '/usr/local/gvis/bin/catalina.sh start'

@@ -1,0 +1,26 @@
+- hosts: fz_gaia_mixer
+  remote_user: root
+  vars:
+  - local_dir: /root/fangzhou
+  - conf_dir: /root/fangzhou/conf/gaia_mixer/
+  - rproc_dir: /data3/gaia/
+  tasks:
+  - name: cp and unarchive tomcat to remote host
+    unarchive: src={{item.src}} dest={{item.dest}} owner={{item.owner}} group={{item.group}} creates={{item.creates}}
+    with_items:
+    - {src: /root/fangzhou/packet/gaia_mixer_20161206.tgz, dest: /data3/gaia/,owner: www,group: www,creates: /data3/gaia/gaia_mixer }
+    - {src: /root/fangzhou/packet/gaia_loaddata_packet.tgz, dest: /data3/,owner: hdfs, group: hdfs, creates: /data3/gaia_loaddata_packet }
+  - name: cp conf file to remote host
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }}
+    with_items:
+    - { src: "{{ conf_dir }}searcher.xml", dest: "{{ rproc_dir }}gaia_mixer/conf/", owner: www, group: www }
+    - { src: "{{ conf_dir }}gaia_mixer.ini", dest: "{{ rproc_dir }}script/", owner: www, group: www }
+    - { src: "{{ local_dir }}/gaia/gaia_mixer", dest: "{{ rproc_dir }}gaia_mixer/", owner: www, group: www}
+    - { src: "{{ local_dir }}/gaia/mdn.dat", dest: "{{ rproc_dir }}gaia_mixer/conf/", owner: www, group: www}
+    - { src: "{{ local_dir }}/gaia/clienttest", dest: "{{ rproc_dir }}", owner: www, group: www}
+  - name: delete gaia_searcher
+    file: path={{ item.path }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }} state={{ item.state }}
+    with_items:
+    - { path: "{{ rproc_dir }}gaia_searcher", owner: www, group: www, mode: '0755', state: absent }
+    - { path: "{{ rproc_dir }}script/gaia_search.ini", owner: www, group: www, mode: '0644', state: absent }
+    - { path: "{{ rproc_dir }}clienttest/test.bin", owner: www, group: www, mode: '0755', state: file }

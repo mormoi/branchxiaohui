@@ -1,0 +1,13 @@
+# edirtor: haifeng
+# 2016/12/13 19:00
+- hosts: fz_mysql_master
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/xiaojinku/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: test loop
+    shell: echo "{{ item }}" >> /tmp/test_loop.txt
+    with_flattened:
+      - [ "{{ groups.zhonghang }}" ]
+

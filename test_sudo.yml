@@ -1,0 +1,8 @@
+- hosts: 10.111.32.28
+  remote_user: root
+  vars:
+  - webapp_dir: /usr/local/xiaojinku/webapps
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: start xiaojinku tomcat
+    shell: ps aux |grep -v 'grep' |grep 'xiaojinku' || su - www -c '/usr/local/xiaojinku/bin/catalina.sh start'

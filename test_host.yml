@@ -1,0 +1,24 @@
+- hosts: 192.168.6.31
+  remote_user: root
+  vars:
+  - remote_dir: /root/
+  - local_dir: /root/fangzhou
+  tasks:
+# modeify hostname for bash script
+  - name: cp redis service file to remote
+    copy: src=/etc/fstab dest=/tmp/6.31.fstab owner=root group=root mode=0755
+#  - name: add redis to service list
+#    shell: chkconfig --list |grep redis || chkconfig --add redis
+#  - name: enable redis and start redis
+#    service: name=redis state=started enabled=yes
+    #shell: test -e /usr/local/{{ item }} || tar xf /root/packet/{{ item }} -C /usr/local/
+    
+#  handlers:
+#  - name: add redis to service list
+#    shell: chkconfig  --add redis
+- hosts: 192.168.6.36
+  remote_user: root
+  tasks:
+  - name: cp redis service file to remote
+    copy: src=/etc/fstab dest=/tmp/6.36.fstab owner=root group=root mode=0755
+

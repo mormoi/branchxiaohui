@@ -1,0 +1,43 @@
+# edirtor: haifeng
+# 2016/12/13 19:00
+- hosts: fz_mysql_master
+  remote_user: root
+  vars:
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: copy mysql password file and sql
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+    with_items:
+    - { src: '{{ local_dir }}/conf/my.cnf', dest: /root/.my.cnf, owner: root, group: root, mode: '0600'}
+    - { src: '{{ local_dir }}/sql/tag_knowledge_level.hql', dest: /home/hdfs/, owner: hdfs, group: hdfs, mode: '0644'}
+  - name: import xiaojinku db sql file
+    mysql_db: name=hive state=present encoding='latin1'
+  - name: create mysql user
+    # 注意修改这里的 host 的值是 xiaojinku 的安装的机器地址
+    mysql_user: user=hive host='{{ item }}' password='hive_fangzhou' priv='hive.*:ALL'
+    with_flattened:
+      - [ '{{ groups.fz_hive }}' ]
+
+- hosts: fz_hive
+  remote_user: root
+  vars:
+  - hive_dir: /usr/local/hive
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: cp and unarchive hive to remote host
+    unarchive: src='{{ local_dir }}/packet/hive-0.14.0.tar.gz' dest=/usr/local/ owner=hdfs group=hdfs creates=/usr/local/hive
+  - name: copy hive conf file
+    copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }}
+    with_items:
+    - { src: '{{ local_dir }}/conf/hive/hive-site.xml', dest: '{{ hive_dir }}/conf/', owner: hdfs, group: hdfs}
+    - { src: '{{ local_dir }}/conf/profile/hive.sh', dest: '/etc/profile.d/', owner: root, group: root}
+
+- hosts: fangzhou-hbase-01
+  remote_user: root
+  vars: 
+  - hive_dir: /usr/local/hive
+  tasks:
+  - name: create moore datebase and tag_knowledge_level
+    copy: src=/root/fangzhou/script/create_hive_table.sh dest=/home/hdfs/ owner=hdfs group=hdfs mode=0755
+  - name: excute create_hive_table.sh
+    shell: nohup su - hdfs -c "sh /home/hdfs/create_hive_table.sh &> /home/hdfs/create_hive_table.out &"

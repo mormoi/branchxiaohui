@@ -1,0 +1,52 @@
+# edirtor: haifeng
+# 2016/12/8 
+- hosts: fz_nfs
+  remote_user: root
+  vars:
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: install ntp server
+    yum: name={{ item }} state=present
+    with_items:
+    - rpcbind
+    - nfs-utils
+  - name: create share directory
+    file: path=/data4/share/gvis owner=www group=www mode=0755 state=directory
+#  - name: copy ntp conf file
+#    template: src="{{ local_dir }}/conf/nfs/exports" dest=/etc/ owner=root group=root mode=0644
+  - name: add nfs entry to /etc/exports
+    lineinfile: dest=/etc/exports line="/data4/share/gvis {{ item }}(rw,sync)"
+    with_flattened:
+      - [ "{{ groups.fz_php }}" ]
+  - name: start nfs server
+    service: name={{ item }} state=started enabled=yes
+    with_items:
+    - rpcbind
+    - nfs
+    - nfslock
+
+
+- hosts: fz_php
+  remote_user: root
+  vars:
+  - local_dir: /root/fangzhou
+  tasks:
+  tasks:
+  - name: install ntp server
+    yum: name={{ item }} state=present
+    with_items:
+    - rpcbind
+    - nfs-utils
+  - name: start ntp server
+    service: name={{ item }} state=started enabled=yes
+    with_items:
+    - rpcbind
+    - nfslock
+  - name: add nfs entry to /etc/exports
+    lineinfile: dest=/etc/fstab line="{{ item }}"
+    with_flattened:
+      - "{{ groups.fz_nfs[0] }}:/data4/share/gvis /server/www/geo/ark/storage/ark nfs nosuid,noexec,nodev,rw 0 0"
+      - "{{ groups.fz_nfs[0] }}:/data4/share/gvis /data4/share/gvis nfs nosuid,noexec,nodev,rw 0 0"
+      - "{{ groups.fz_nfs[0] }}:/data4/share/gvis /data3/gaia/gaia_mixer/data nfs nosuid,noexec,nodev,rw 0 0"
+  - name: mount share disk
+    shell: mount -a

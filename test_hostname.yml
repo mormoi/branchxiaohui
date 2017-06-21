@@ -1,0 +1,12 @@
+- hosts: 10.111.32.28
+  remote_user: root
+  vars:
+  - remote_dir: /root/
+  - local_dir: /root/fangzhou
+  tasks:
+  - name: test shell 
+    shell: grep '{{ ansible_default_ipv4.address }}' /etc/hosts | awk "{print \$2}"
+    register: hname
+  - name: modify hostname
+    #shell: echo "{{ hname }}"  > /tmp/hostname
+    hostname: name={{ hname.stdout }}

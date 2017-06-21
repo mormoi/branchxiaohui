@@ -1,0 +1,39 @@
+- hosts: gaia_1
+  remote_user: root
+  vars:
+  - remote_dir: /root/
+  tasks:
+  - name: copy Mysql-5.6.30 packet
+    unarchive: src=/root/fangzhou/packet/MySQL-5.6.30-1.el6.x86_64.rpm-bundle.tar dest=/root/  creates=/root/MySQL-server-5.6.30-1.el6.x86_64.rpm
+  - name: copy my.cnf to mysql_server
+    template: src=/root/fangzhou/conf/my.cnf dest=/etc/ owner=root group=root mode=0644
+  - name: create log,data dir
+    file: path={{ item }} owner=mysql group=mysql mode=0755 state=directory
+    with_items:
+      - /var/lib/mysql
+      - /data2/mydata
+      - /var/log/mysqld
+      - /data4/mysql56_log
+  - name: install Mysql-5.6.30
+    yum: name={{ item.name }} state={{ item.state }}
+    with_items:
+      - { name: /root/MySQL-server-5.6.30-1.el6.x86_64.rpm, state: present }
+      - { name: /root/MySQL-client-5.6.30-1.el6.x86_64.rpm, state: present }
+      - { name: /root/MySQL-devel-5.6.30-1.el6.x86_64.rpm, state: present  }
+      - { name: /root/MySQL-embedded-5.6.30-1.el6.x86_64.rpm, state: present }
+      - { name: /root/MySQL-shared-5.6.30-1.el6.x86_64.rpm, state: present }
+      - { name: /root/MySQL-shared-compat-5.6.30-1.el6.x86_64.rpm, state: present }
+      - { name: /root/MySQL-test-5.6.30-1.el6.x86_64.rpm, state: present }
+      - { name: ca-certificates, state: latest }
+      - { name: epel-release, state: present }
+      - { name: MySQL-python, state: present }
+  - name: enable mysql and start mysql
+    service: name=mysql state=started enabled=yes
+  - name: get mysql default password
+    shell: awk '{print $NF}' /root/.mysql_secret 
+    register: default_pass
+    ignore_errors: true
+  - name: update mysql default password
+    mysql_user: login_user=root login_password={{ default_pass.stdout }}  user=root password=123456 update_password=always 
+    ignore_errors: true
+   
